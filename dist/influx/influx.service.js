@@ -34,6 +34,17 @@ let InfluxService = InfluxService_1 = class InfluxService {
         this.org = org;
         this.bucket = bucket;
     }
+    async onModuleInit() {
+        const queryApi = this.client.getQueryApi(this.org);
+        try {
+            await queryApi.collectRows('buckets() |> limit(n:1)');
+            this.logger.log('InfluxDB connection verified successfully.');
+        }
+        catch (err) {
+            this.logger.error('InfluxDB connection check failed', err);
+            throw new common_1.HttpException('InfluxDB connection failed during startup', common_1.HttpStatus.SERVICE_UNAVAILABLE);
+        }
+    }
     async writeData(measurement, fields, tags) {
         const writeApi = this.client.getWriteApi(this.org, this.bucket);
         const point = new influxdb_client_1.Point(measurement);

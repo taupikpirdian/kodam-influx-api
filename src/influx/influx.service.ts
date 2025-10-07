@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
 
 @Injectable()
-export class InfluxService {
+export class InfluxService implements OnModuleInit {
   private readonly logger = new Logger(InfluxService.name);
   private client: InfluxDB;
   private org: string;
@@ -27,6 +27,21 @@ export class InfluxService {
     this.client = new InfluxDB({ url, token });
     this.org = org;
     this.bucket = bucket;
+  }
+
+  async onModuleInit(): Promise<void> {
+    // Verify connectivity to InfluxDB by running a simple Flux query.
+    const queryApi = this.client.getQueryApi(this.org);
+    try {
+      await queryApi.collectRows('buckets() |> limit(n:1)');
+      this.logger.log('InfluxDB connection verified successfully.');
+    } catch (err) {
+      this.logger.error('InfluxDB connection check failed', err as Error);
+      throw new HttpException(
+        'InfluxDB connection failed during startup',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 
   async writeData(

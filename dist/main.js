@@ -10,7 +10,8 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
         transform: true,
     }));
-    await app.listen(process.env.PORT ?? 3000);
+    const port = Number(process.env.APP_PORT ?? process.env.PORT ?? 3000);
+    await app.listen(port);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map
